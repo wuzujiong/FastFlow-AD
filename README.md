@@ -1,4 +1,7 @@
-# FastFlow-AD ![image](https://user-images.githubusercontent.com/37028633/157865666-5a96e40b-a6bd-4e88-b322-9ccdc2a988ba.png)
+# FastFlow-AD
+
+![image](https://user-images.githubusercontent.com/37028633/157865763-105ae80a-ba4a-4bd0-8bd2-bf0ec392f865.png)
+
 
 
 Unoficial implementation of FastFlow: Unsupervised Anomaly Detection and Localization via 2D Normalizing Flows 
