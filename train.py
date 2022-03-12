@@ -13,15 +13,15 @@ def train_model(model, dataloader, test_dataloader, device = torch.device('cuda'
     print(model)
     optimizer = Adam(model.fastflow.parameters(), 1e-3, weight_decay=1e-5)
 
-    epochs = 100
+    epochs = 50
     model.to(device)
     best_auroc = 0.0
     for e in range(epochs):
         train_loss = one_epoch(model, optimizer, dataloader, device)
-        if e % 4 == 0:
-            auroc, test_loss = evaluate(model, test_dataloader, device)
-            if auroc > best_auroc:
-                best_auroc = auroc
-            print("[Epoch {}/{}]: Training loss: {:.5f} \t\t Test loss: {:.5f}"
-                  "\t\t auroc: {:.5f} \t\t best auroc: {:.5f} ".format(e, epochs, train_loss,
-                                                            test_loss, auroc, best_auroc))
+        auroc, test_loss = evaluate(model, test_dataloader, device)
+
+        if auroc > best_auroc:
+            best_auroc = auroc
+        print("[Epoch {}/{}]: Training loss: {:.5f} \t Test loss: {:.5f}"
+              "\t auroc: {:.5f} \t best auroc: {:.5f} ".format(e, epochs, train_loss,
+                                                        test_loss, auroc, best_auroc))
