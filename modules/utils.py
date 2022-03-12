@@ -3,10 +3,15 @@ from torchvision.utils import make_grid
 import matplotlib.pyplot as plt
 from torchvision import transforms as T
 
+# def build_logp(z: torch.Tensor, log_j: torch.Tensor) -> torch.Tensor:
+#     """ Calculate the negative log-likelihood """
+#     z = z.reshape(z.shape[0], -1)
+#     loss = torch.mean(0.5 * torch.sum(z ** 2, dim=1) - log_j) / z.shape[1]
+#     return loss
+
 def build_logp(z: torch.Tensor, log_j: torch.Tensor) -> torch.Tensor:
     """ Calculate the negative log-likelihood """
-    z = z.reshape(z.shape[0], -1)
-    loss = torch.mean(0.5 * torch.sum(z ** 2, dim=1) - log_j) / z.shape[1]
+    loss = torch.mean(0.5 * torch.sum(z ** 2, dim=(1, 2, 3)) - log_j) / z.shape[1]
     return loss
 
 def batch2grid(batch, id_batch, unnmorlaize = True):
