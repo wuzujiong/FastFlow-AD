@@ -37,7 +37,7 @@ class MVTecTrainDataset(ImageFolder):
         if cls == 'cable' or cls == 'capsule' or cls == 'pill':
             transform = T.Compose([
                 T.Resize(288),
-                RandomRotation(0.7, degrees=10),
+                RandomRotation(0.7, degrees=5),
                 T.CenterCrop(256),
                 T.ToTensor(),
                 T.Normalize([.485, .456, .406], [.229, .224, .225])
@@ -46,7 +46,7 @@ class MVTecTrainDataset(ImageFolder):
             transform = T.Compose([
                 T.Resize(288),
                 T.RandomHorizontalFlip(0.5),
-                RandomRotation(0.7, degrees=10),
+                RandomRotation(0.7, degrees=5),
                 T.CenterCrop(256),
                 T.ToTensor(),
                 T.Normalize([.485, .456, .406], [.229, .224, .225])
