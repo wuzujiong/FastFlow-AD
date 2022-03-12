@@ -1,8 +1,8 @@
+from collections import OrderedDict
 from typing import List, Callable
-
+import timm
 import torch
 from torch import nn, Tensor
-
 from torchvision import models
 from torchvision.models.feature_extraction import create_feature_extractor
 
@@ -25,40 +25,58 @@ def subnet_conv_1x1(channels_in: int, channels_out: int) -> nn.Sequential:
     )
 
 
+# def fastflow_head(dims: tuple) -> Ff.SequenceINN:
+#
+#     inn = Ff.SequenceINN(*dims)
+#     for k in range(4):
+#         inn.append(Fm.PermuteRandom)
+#         inn.append(Fm.ActNorm)
+#         inn.append(Fm.GLOWCouplingBlock, subnet_constructor = subnet_conv_3x3)
+#         inn.append(Fm.PermuteRandom)
+#         inn.append(Fm.ActNorm)
+#         inn.append(Fm.GLOWCouplingBlock, subnet_constructor=subnet_conv_1x1)
+#
+#     return inn
+
 def fastflow_head(dims: tuple) -> Ff.SequenceINN:
 
     inn = Ff.SequenceINN(*dims)
     for k in range(4):
-        inn.append(Fm.AllInOneBlock, subnet_constructor=subnet_conv_3x3, affine_clamping = 2.5)
-        inn.append(Fm.AllInOneBlock, subnet_constructor=subnet_conv_1x1, affine_clamping = 2.5)
+        inn.append(Fm.AllInOneBlock, subnet_constructor=subnet_conv_3x3)
+        inn.append(Fm.AllInOneBlock, subnet_constructor=subnet_conv_1x1)
 
     return inn
 
 
 class FastFlow(nn.Module):
-    def __init__(self):
+    def __init__(self, backbone = 'wide_resnet50_2'):
         """
         For resnet we directly use the features of the last layer in the first three blocks
         and put these features into three corresponding FastFlow model
+
+        :param backbone: wide_resnet50_2 and resnet18 are supported
         """
 
+        assert backbone == 'wide_resnet50_2' or backbone == 'resnet18'
+
         super().__init__()
-        backbone = models.wide_resnet50_2(True)
-        return_nodes = ['layer1', 'layer2', 'layer3']
-        self.feature_extractor = create_feature_extractor(backbone,
-                                                          return_nodes=return_nodes)
+        self.feature_extractor = timm.create_model(backbone, pretrained=True,
+                                                   features_only = True, out_indices=(1, 2, 3))
         self.feature_extractor.eval()
         for param in self.feature_extractor.parameters():
             param.requires_grad = False
-
+        # Dry run to initialize the flow heads
+        with torch.no_grad():
+            features = self.feature_extractor(torch.randn(1, 3, 256, 256))
         # discussion: https://discuss.pytorch.org/t/when-should-i-use-nn-modulelist-and-when-should-i-use-nn-sequential/5463/4
         self.fastflow = nn.ModuleList([
-            fastflow_head(dim)
-            for dim in ((256, 64, 64), (512, 32, 32), (1024, 16, 16)) # hardcoded at the moment
+            fastflow_head(feat.shape[1:]) for feat in features
         ])
 
     def forward(self, x: List[Tensor]) -> List:
         with torch.no_grad():
-            x = self.feature_extractor(x)
-        return [head_flow(x[key]) for key, head_flow in zip (x, self.fastflow)]
+            features = self.feature_extractor(x)
+        # features = list(features.values())
+
+        return [head_flow(feat) for feat, head_flow in zip (features, self.fastflow)]
 

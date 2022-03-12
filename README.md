@@ -3,7 +3,6 @@
 ![image](https://user-images.githubusercontent.com/37028633/157865763-105ae80a-ba4a-4bd0-8bd2-bf0ec392f865.png)
 
 
-
 Unoficial implementation of FastFlow: Unsupervised Anomaly Detection and Localization via 2D Normalizing Flows 
 https://arxiv.org/pdf/2111.07677v2.pdf
 
@@ -13,7 +12,6 @@ Welcome and appreciate any contributions to the Q&A issue.
 The next table shows a quick performance of this code. Please, make sure that your contribution improves the table.
 
 ## [MVTec Dataset](https://www.mvtec.com/company/research/datasets/mvtec-ad)
-
 
 ### Image classification AUROC
 
