@@ -42,8 +42,8 @@ def fastflow_head(dims: tuple) -> Ff.SequenceINN:
 
     inn = Ff.SequenceINN(*dims)
     for k in range(4):
-        inn.append(Fm.AllInOneBlock, subnet_constructor=subnet_conv_3x3)
-        inn.append(Fm.AllInOneBlock, subnet_constructor=subnet_conv_1x1)
+        inn.append(Fm.AllInOneBlock, subnet_constructor=subnet_conv_3x3, permute_soft=True)
+        inn.append(Fm.AllInOneBlock, subnet_constructor=subnet_conv_1x1, permute_soft=True)
 
     return inn
 
