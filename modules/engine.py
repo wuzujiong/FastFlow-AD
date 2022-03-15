@@ -1,9 +1,12 @@
 import math
+from typing import List
+
+from torch import Tensor
 from torch.nn import functional as F
 from sklearn.metrics import roc_auc_score
 import numpy as np
 import torch
-from modules import build_logp, compute_anomaly_scores, get_likelihood
+from modules import build_neg_logp, compute_anomaly_scores, build_logp
 
 def one_epoch(model, optimizer, dataloader, device):
     model.fastflow.train()
@@ -14,15 +17,15 @@ def one_epoch(model, optimizer, dataloader, device):
             inputs = inputs.to(device)
             with torch.no_grad():
                 features = model.feature_extractor(inputs)
-            total_loss = torch.zeros([1], device=device)
+            total_loss = .0
             for idx, feat in enumerate(features):
                 optimizer.zero_grad()
                 z, log_j = model.fastflow[idx](feat)
-                logp = build_logp(z, log_j)
+                logp = build_neg_logp(z, log_j)
                 logp.backward()
                 optimizer.step()
-                total_loss += logp.detach()
-            train_loss.append(total_loss.item())
+                total_loss += logp.item()
+            train_loss.append(total_loss)
 
     return np.mean(train_loss)
 
@@ -35,19 +38,23 @@ def evaluate(model, data_loader, device):
     test_labels = list()
     score_labels = list()
 
-    for input, mask, label in data_loader:
+    # segmentation
+    test_masks = list()
+    pred_masks = list()
+
+    for input, mask, y in data_loader:
         input = input.to(device)
         with torch.no_grad():
             features = model.feature_extractor(input)
-        scores = torch.zeros(len(features), device=device)
+        distribution: List[Tensor] = []
         for idx, feat in enumerate(features):
             z, log_j = model.fastflow[idx](feat)
-            z = z.reshape(z.shape[0], -1)
-            scores[idx] = torch.mean(z ** 2 / 2, 1)
+            distribution.append(torch.mean(z ** 2 * .5, 1))
 
-        score_labels.append(scores.mean().item())
-        test_labels.append(label.item())
+        image_score, mask_score = compute_anomaly_scores(distribution, input.shape[-2:])
 
+        test_labels.append(y.item())
+        score_labels.append(image_score.item())
 
     auroc_det = roc_auc_score(test_labels, score_labels)
     auroc_seg = .0

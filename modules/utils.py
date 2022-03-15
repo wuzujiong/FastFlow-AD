@@ -1,3 +1,4 @@
+import math
 from typing import List, Tuple, Any
 
 import numpy as np
@@ -28,35 +29,30 @@ def compute_anomaly_scores(distribution: List[Tensor], size: tuple) -> Tuple[Any
 
     likelihood_map: List[Tensor] = []
     for likelihood in distribution:
-        likelihood -= likelihood.max()  # normalize likelihoods
-        likelihood = likelihood.exp()  # convert to probs in range [0:1]
+
         likelihood_map.append(
-            F.interpolate(likelihood.unsqueeze(1), size=size, mode="bilinear", align_corners=False).squeeze()
+            F.interpolate(likelihood.unsqueeze(1),
+                          size=size, mode="bilinear", align_corners=False).squeeze()
         )
 
     # score aggregation
     score_mask = torch.zeros_like(likelihood_map[0])
     for likeli in likelihood_map:
         score_mask += likeli
-    score_mask /= 3
-    # probs to anomaly scores
-    # score_mask = score_mask.max() - score_mask
+    score_mask /= len(likelihood_map)
+
     score_img = score_mask.max()
 
     return score_img, score_mask
 
-def get_likelihood(features_dim: int, p_u: torch.Tensor, logdet_j: torch.Tensor) -> torch.Tensor:
-    """ Returns the log likelihood estimation """
-    ln_sqrt_2pi = -np.log(np.sqrt(2 * np.pi))  # ln(sqrt(2*pi))
-    likelihood = features_dim * ln_sqrt_2pi - 0.5 * torch.sum(p_u ** 2, 1) + logdet_j
-    likelihood /= features_dim # likelihood per channel
-    return likelihood
-
 def build_logp(z: torch.Tensor, log_j: torch.Tensor) -> torch.Tensor:
+    """ Calculate the log-likelihood """
+    return (-0.5*( (z ** 2) + math.log(math.sqrt(2 * np.pi)) )) + log_j
+    # return -math.log(math.sqrt(2 * np.pi)) - 0.5 * (z ** 2) + log_j
+
+def build_neg_logp(z: torch.Tensor, log_j: torch.Tensor) -> torch.Tensor:
     """ Calculate the negative log-likelihood """
-    # loss = torch.mean(0.5 * torch.sum(z.reshape(z.shape[0], -1) ** 2, dim=1) - log_j) / z.shape[1]
-    loss = torch.mean(0.5 * torch.sum(z ** 2, dim=(1, 2, 3)) - log_j) / z.shape[1]
-    return loss
+    return torch.mean(0.5 * torch.sum(z ** 2, dim=(1, 2, 3)) - log_j) / z.shape[1]
 
 def batch2grid(batch, id_batch, unnmorlaize = True):
     grid = make_grid(batch)
