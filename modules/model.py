@@ -24,26 +24,13 @@ def subnet_conv_1x1(channels_in: int, channels_out: int) -> nn.Sequential:
         nn.Conv2d(2*channels_in, channels_out, (1, 1))
     )
 
-
-# def fastflow_head(dims: tuple) -> Ff.SequenceINN:
-#
-#     inn = Ff.SequenceINN(*dims)
-#     for k in range(4):
-#         inn.append(Fm.PermuteRandom)
-#         inn.append(Fm.ActNorm)
-#         inn.append(Fm.GLOWCouplingBlock, subnet_constructor = subnet_conv_3x3)
-#         inn.append(Fm.PermuteRandom)
-#         inn.append(Fm.ActNorm)
-#         inn.append(Fm.GLOWCouplingBlock, subnet_constructor=subnet_conv_1x1)
-#
-#     return inn
-
 def fastflow_head(dims: tuple) -> Ff.SequenceINN:
 
     inn = Ff.SequenceINN(*dims)
     for k in range(4):
-        inn.append(Fm.AllInOneBlock, subnet_constructor=subnet_conv_3x3, permute_soft=True)
-        inn.append(Fm.AllInOneBlock, subnet_constructor=subnet_conv_1x1, permute_soft=True)
+        inn.append(Fm.PermuteRandom)
+        inn.append(Fm.AllInOneBlock, subnet_constructor=subnet_conv_3x3)
+        inn.append(Fm.AllInOneBlock, subnet_constructor=subnet_conv_1x1)
 
     return inn
 
@@ -60,8 +47,7 @@ class FastFlow(nn.Module):
         assert backbone == 'wide_resnet50_2' or backbone == 'resnet18'
 
         super().__init__()
-        self.feature_extractor = timm.create_model(backbone, pretrained=True,
-                                                   features_only = True, out_indices=(1, 2, 3))
+        self.feature_extractor = timm.create_model(backbone, pretrained=True, features_only = True, out_indices=(1, 2, 3))
         self.feature_extractor.eval()
         for param in self.feature_extractor.parameters():
             param.requires_grad = False

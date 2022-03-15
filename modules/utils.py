@@ -12,7 +12,7 @@ from torch.nn import functional as F
 
 
 
-def compute_anomlay_scores(distribution: List[Tensor], size: tuple) -> Tuple[Any, Any]:
+def compute_anomaly_scores(distribution: List[Tensor], size: tuple) -> Tuple[Any, Any]:
     """
     Calculate the anomaly score and anomaly map.
 
@@ -26,19 +26,31 @@ def compute_anomlay_scores(distribution: List[Tensor], size: tuple) -> Tuple[Any
     :return: anomaly scores
     """
 
-    distribution: List[Tensor] = [
-        F.interpolate(d.sum(1).unsqueeze(1), size=size, mode="bilinear", align_corners=True).squeeze()
-        for d in distribution
-    ]
+    likelihood_map: List[Tensor] = []
+    for likelihood in distribution:
+        likelihood -= likelihood.max()  # normalize likelihoods
+        likelihood = likelihood.exp()  # convert to probs in range [0:1]
+        likelihood_map.append(
+            F.interpolate(likelihood.unsqueeze(1), size=size, mode="bilinear", align_corners=False).squeeze()
+        )
 
-    score_map = torch.zeros_like(distribution[0])
-    for idx in range(len(distribution)):
-        score_map += distribution[idx]
-    score_map /= len(distribution)
+    # score aggregation
+    score_mask = torch.zeros_like(likelihood_map[0])
+    for likeli in likelihood_map:
+        score_mask += likeli
+    score_mask /= 3
+    # probs to anomaly scores
+    # score_mask = score_mask.max() - score_mask
+    score_img = score_mask.max()
 
-    score_img = score_map.max().item()
+    return score_img, score_mask
 
-    return score_img
+def get_likelihood(features_dim: int, p_u: torch.Tensor, logdet_j: torch.Tensor) -> torch.Tensor:
+    """ Returns the log likelihood estimation """
+    ln_sqrt_2pi = -np.log(np.sqrt(2 * np.pi))  # ln(sqrt(2*pi))
+    likelihood = features_dim * ln_sqrt_2pi - 0.5 * torch.sum(p_u ** 2, 1) + logdet_j
+    likelihood /= features_dim # likelihood per channel
+    return likelihood
 
 def build_logp(z: torch.Tensor, log_j: torch.Tensor) -> torch.Tensor:
     """ Calculate the negative log-likelihood """

@@ -15,12 +15,10 @@ def train_model(model, dataloader, test_dataloader, device = torch.device('cuda'
 
     epochs = 15
     model.to(device)
-    best_auroc = 0.0
     for e in range(epochs):
         train_loss = one_epoch(model, optimizer, dataloader, device)
-        test_loss, auroc = evaluate(model, test_dataloader, device)
-        if auroc > best_auroc:
-            best_auroc = auroc
-        print("[Epoch {}/{}]: Train loss: {:.4f} \t Test loss: {:.4f} \t "
-              "auroc: {:.4f} \t best auroc: {:.4f} ".format(e, epochs, train_loss, test_loss,
-                                                            auroc, best_auroc))
+        det, seg = evaluate(model, test_dataloader, device)
+
+        print("[Epoch {}/{}]: Train loss: {:.4f} \t\t "
+              "Image AUROC {:.4f} \t\t Pixel AUROC: {:.4f}".format(
+            e, epochs, train_loss, det, seg))
