@@ -28,8 +28,8 @@ def fastflow_head(dims: tuple) -> Ff.SequenceINN:
 
     inn = Ff.SequenceINN(*dims)
     for k in range(4):
-        inn.append(Fm.AllInOneBlock, subnet_constructor=subnet_conv_3x3)
-        inn.append(Fm.AllInOneBlock, subnet_constructor=subnet_conv_1x1)
+        inn.append(Fm.AllInOneBlock, reverse_permutation = True, subnet_constructor=subnet_conv_3x3)
+        inn.append(Fm.AllInOneBlock, reverse_permutation = True, subnet_constructor=subnet_conv_1x1)
 
     return inn
 
@@ -46,13 +46,13 @@ class FastFlow(nn.Module):
         assert backbone == 'wide_resnet50_2' or backbone == 'resnet18'
 
         super().__init__()
-        self.feature_extractor = timm.create_model(backbone, pretrained=True, features_only = True, out_indices=(1, 2, 3))
-        self.feature_extractor.eval()
-        for param in self.feature_extractor.parameters():
+        self.encoder = timm.create_model(backbone, pretrained=True, features_only = True, out_indices=(1, 2, 3))
+        self.encoder.eval()
+        for param in self.encoder.parameters():
             param.requires_grad = False
         # Dry run to initialize the flow heads
         with torch.no_grad():
-            features = self.feature_extractor(torch.randn(1, 3, 256, 256))
+            features = self.encoder(torch.randn(1, 3, 256, 256))
         # discussion: https://discuss.pytorch.org/t/when-should-i-use-nn-modulelist-and-when-should-i-use-nn-sequential/5463/4
         self.fastflow = nn.ModuleList([
             fastflow_head(feat.shape[1:]) for feat in features
@@ -60,7 +60,7 @@ class FastFlow(nn.Module):
 
     def forward(self, x: List[Tensor]) -> List:
         with torch.no_grad():
-            features = self.feature_extractor(x)
+            features = self.encoder(x)
         # features = list(features.values())
 
         return [head_flow(feat) for feat, head_flow in zip (features, self.fastflow)]

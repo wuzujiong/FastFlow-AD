@@ -16,7 +16,7 @@ def one_epoch(model, optimizer, dataloader, device):
         for inputs in dataloader:
             inputs = inputs.to(device)
             with torch.no_grad():
-                features = model.feature_extractor(inputs)
+                features = model.encoder(inputs)
             total_loss = .0
             for idx, feat in enumerate(features):
                 optimizer.zero_grad()
@@ -45,13 +45,13 @@ def evaluate(model, data_loader, device):
     for input, mask, y in data_loader:
         input = input.to(device)
         with torch.no_grad():
-            features = model.feature_extractor(input)
-        distribution: List[Tensor] = []
+            features = model.encoder(input)
+        likelihoods: List[Tensor] = []
         for idx, feat in enumerate(features):
             z, log_j = model.fastflow[idx](feat)
-            distribution.append(torch.mean(z ** 2 * .5, 1))
+            likelihoods.append(torch.sum(z ** 2, 1))
 
-        image_score, mask_score = compute_anomaly_scores(distribution, input.shape[-2:])
+        image_score, mask_score = compute_anomaly_scores(likelihoods, input.shape[-2:])
 
         test_labels.append(y.item())
         score_labels.append(image_score.item())

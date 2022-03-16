@@ -29,18 +29,15 @@ def compute_anomaly_scores(distribution: List[Tensor], size: tuple) -> Tuple[Any
 
     likelihood_map: List[Tensor] = []
     for likelihood in distribution:
-
         likelihood_map.append(
-            F.interpolate(likelihood.unsqueeze(1),
-                          size=size, mode="bilinear", align_corners=False).squeeze()
+            F.interpolate(likelihood.unsqueeze(1), size=size, mode="bilinear", align_corners=False).squeeze()
         )
 
     # score aggregation
     score_mask = torch.zeros_like(likelihood_map[0])
     for likeli in likelihood_map:
         score_mask += likeli
-    score_mask /= len(likelihood_map)
-
+    score_mask /= 3
     score_img = score_mask.max()
 
     return score_img, score_mask
