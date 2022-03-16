@@ -7,7 +7,7 @@
 Unoficial implementation of FastFlow: Unsupervised Anomaly Detection and Localization via 2D Normalizing Flows 
 https://arxiv.org/pdf/2111.07677v2.pdf
 
-WIP repo. This code has lot of effort to try solving the implementation of this study, which is until unfinished. 
+WIP repo. This code is until unfinished. 
 Welcome and appreciate any contributions to the Q&A issue.
 
 The next table shows a quick performance of this code. Please, make sure that your contribution improves the table.
@@ -21,7 +21,7 @@ The next table shows a quick performance of this code. Please, make sure that yo
 | -------------- |:----:|:------:|:----:| :-----: |:----:|:----:|:------:|:-----:|:-------:|:--------:|:---------:|:----:|:-----:|:----------:|:----------:|:------:|
 | Wide ResNet-50 | TODO |  0.99  | 0.97 |   1.0   | 1.0  | 1.0  |  1.0   | 0.95  |  0.80   |   0.99   |   0.97    | 0.95 | 0.99  |    0.86    |    0.88    |  1.0   |
 
-Note: We had this results with the "First commit"
+Note: *We had this results with the "First commit"
 
 ### Image segmentation AUROC
 
