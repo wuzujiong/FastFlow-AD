@@ -21,6 +21,8 @@ The next table shows a quick performance of this code. Please, make sure that yo
 | -------------- |:----:|:------:|:----:| :-----: |:----:|:----:|:------:|:-----:|:-------:|:--------:|:---------:|:----:|:-----:|:----------:|:----------:|:------:|
 | Wide ResNet-50 | TODO |  0.99  | 0.97 |   1.0   | 1.0  | 1.0  |  1.0   | 0.95  |  0.80   |   0.99   |   0.97    | 0.95 | 0.99  |    0.86    |    0.88    |  1.0   |
 
+Note: We had this results with the "First commit"
+
 ### Image segmentation AUROC
 
 TODO

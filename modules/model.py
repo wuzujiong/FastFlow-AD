@@ -24,16 +24,13 @@ def subnet_conv_1x1(channels_in: int, channels_out: int) -> nn.Sequential:
         nn.Conv2d(2*channels_in, channels_out, (1, 1))
     )
 
-
 def fastflow_head(dims: tuple) -> Ff.SequenceINN:
 
     inn = Ff.SequenceINN(*dims)
     for k in range(4):
-        inn.append(Fm.AllInOneBlock, subnet_constructor=subnet_conv_3x3, affine_clamping = 2.5)
-        inn.append(Fm.AllInOneBlock, subnet_constructor=subnet_conv_1x1, affine_clamping = 2.5)
-
+        inn.append(Fm.AllInOneBlock, reverse_permutation = True, subnet_constructor=subnet_conv_3x3)
+        inn.append(Fm.AllInOneBlock, reverse_permutation = True, subnet_constructor=subnet_conv_1x1)
     return inn
-
 
 class FastFlow(nn.Module):
     def __init__(self):
@@ -43,13 +40,13 @@ class FastFlow(nn.Module):
         """
 
         super().__init__()
-        backbone = models.wide_resnet50_2(True)
-        return_nodes = ['layer1', 'layer2', 'layer3']
-        self.feature_extractor = create_feature_extractor(backbone,
-                                                          return_nodes=return_nodes)
-        self.feature_extractor.eval()
-        for param in self.feature_extractor.parameters():
+        self.encoder = timm.create_model(backbone, pretrained=True, features_only = True, out_indices=(1, 2, 3))
+        self.encoder.eval()
+        for param in self.encoder.parameters():
             param.requires_grad = False
+        # Dry run to initialize the flow heads
+        with torch.no_grad():
+            features = self.encoder(torch.randn(1, 3, 256, 256))
 
         # discussion: https://discuss.pytorch.org/t/when-should-i-use-nn-modulelist-and-when-should-i-use-nn-sequential/5463/4
         self.fastflow = nn.ModuleList([
@@ -59,6 +56,7 @@ class FastFlow(nn.Module):
 
     def forward(self, x: List[Tensor]) -> List:
         with torch.no_grad():
-            x = self.feature_extractor(x)
-        return [head_flow(x[key]) for key, head_flow in zip (x, self.fastflow)]
+            features = self.encoder(x)
+        # features = list(features.values())
 
+        return [head_flow(feat) for feat, head_flow in zip (features, self.fastflow)]

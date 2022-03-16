@@ -1,63 +1,62 @@
+import math
+from typing import List
+
+from torch import Tensor
+from torch.nn import functional as F
 from sklearn.metrics import roc_auc_score
 import numpy as np
 import torch
-from modules import build_logp
+from modules import build_neg_logp, compute_anomaly_scores, build_logp
 
 def one_epoch(model, optimizer, dataloader, device):
     model.fastflow.train()
 
     train_loss = list()
-    for inputs in dataloader:
-        optimizer.zero_grad()
-        inputs = inputs.to(device)
-        o1, o2, o3 = model(inputs)
 
-        loss1 = build_logp(*o1)
-        loss2 = build_logp(*o2)
-        loss3 = build_logp(*o3)
-        loss = (loss1 + loss2 + loss3)
-        loss.backward()
-
-        torch.nn.utils.clip_grad_norm_(model.fastflow.parameters(), 1e0)
-        optimizer.step()
-
-        train_loss.append(loss.item())
+    for _ in range(4): # sub epochs
+        for inputs in dataloader:
+            inputs = inputs.to(device)
+            with torch.no_grad():
+                features = model.encoder(inputs)
+            total_loss = .0
+            for idx, feat in enumerate(features):
+                optimizer.zero_grad()
+                z, log_j = model.fastflow[idx](feat)
+                logp = build_neg_logp(z, log_j)
+                logp.backward()
+                optimizer.step()
+                total_loss += logp.item()
+            train_loss.append(total_loss)
 
     return np.mean(train_loss)
+
 
 @torch.no_grad()
 def evaluate(model, data_loader, device):
     model.fastflow.eval()
 
-    test_loss = list()
-    anomaly_score = list()
+    # detection
     test_labels = list()
+    score_labels = list()
+
+    # segmentation
+    test_masks = list()
+    pred_masks = list()
 
     for input, mask, y in data_loader:
         input = input.to(device)
-        o1, o2, o3 = model(input)
+        with torch.no_grad():
+            features = model.encoder(input)
+        likelihoods: List[Tensor] = []
+        for idx, feat in enumerate(features):
+            z, log_j = model.fastflow[idx](feat)
+            likelihoods.append(torch.sum(z ** 2, 1))
 
-        # Compute loss score
-        loss1 = build_logp(*o1)
-        loss2 = build_logp(*o2)
-        loss3 = build_logp(*o3)
-        test_loss.append(loss1.item() + loss2.item() + loss3.item())
-
-        # Compute anomaly score
-
-        z1 = o1[0].reshape(o1[0].shape[0], -1)
-        z2 = o2[0].reshape(o2[0].shape[0], -1)
-        z3 = o3[0].reshape(o3[0].shape[0], -1)
-
-        score1 = torch.mean(z1 ** 2, dim = 1)
-        score2 = torch.mean(z2 ** 2, dim = 1)
-        score3 = torch.mean(z3 ** 2, dim = 1)
-
-        anomaly_score.append([score1.item(), score2.item(), score3.item()])
+        image_score, mask_score = compute_anomaly_scores(likelihoods, input.shape[-2:])
 
         test_labels.append(y.item())
+        score_labels.append(image_score.item())
 
-    test_loss = np.mean(test_loss)
-    anomaly_score = np.mean(anomaly_score, axis=1)
-
-    return roc_auc_score(test_labels, anomaly_score), test_loss
+    auroc_det = roc_auc_score(test_labels, score_labels)
+    auroc_seg = .0
+    return auroc_det, auroc_seg
