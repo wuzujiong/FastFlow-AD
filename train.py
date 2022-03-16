@@ -11,15 +11,13 @@ def train_model(model, dataloader, test_dataloader, device = torch.device('cuda'
     eps value is taken from  DifferNet and CS-FLOW
     """
     print(model)
-    optimizer = Adam(model.fastflow.parameters(), 1e-3, weight_decay=1e-5)
+    optimizer = Adam(model.decoder.parameters(), 1e-3, weight_decay=1e-5)
 
     epochs = 15
     model.to(device)
     for e in range(epochs):
-        train_loss = .0
         train_loss = one_epoch(model, optimizer, dataloader, device)
         det, seg = evaluate(model, test_dataloader, device)
 
-        print("[Epoch {}/{}]: Train loss: {:.4f} \t\t "
-              "Image AUROC {:.4f} \t\t Pixel AUROC: {:.4f}".format(
-            e, epochs, train_loss, det, seg))
+        print("[Epoch {}/{}]: Train loss: {:.4f} \t\t Image AUROC {:.4f} \t\t "
+              "Pixel AUROC: {:.4f}".format(e, epochs, train_loss, det, seg))
