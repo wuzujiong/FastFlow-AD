@@ -7,10 +7,8 @@
 Unoficial implementation of FastFlow: Unsupervised Anomaly Detection and Localization via 2D Normalizing Flows 
 https://arxiv.org/pdf/2111.07677v2.pdf
 
-WIP repo. This code is until unfinished. 
-Welcome and appreciate any contributions to the Q&A issue.
-
-The next table shows a quick performance of this code. Please, make sure that your contribution improves the table.
+WIP repo: this code is unfinished. I welcome and appreciate any contributions to the Q&A issue.
+Whether you want to do a pull request, please make sure that your contribution improves the table.
 
 ## [MVTec Dataset](https://www.mvtec.com/company/research/datasets/mvtec-ad)
 
