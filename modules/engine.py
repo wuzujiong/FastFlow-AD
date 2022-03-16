@@ -9,7 +9,7 @@ import torch
 from modules import build_neg_logp, compute_anomaly_scores, build_logp
 
 def one_epoch(model, optimizer, dataloader, device):
-    model.fastflow.train()
+    model.decoder.train()
 
     train_loss = list()
 
@@ -18,10 +18,11 @@ def one_epoch(model, optimizer, dataloader, device):
             inputs = inputs.to(device)
             with torch.no_grad():
                 features = model.encoder(inputs)
+            features = list(features.values())
             total_loss = .0
             for idx, feat in enumerate(features):
                 optimizer.zero_grad()
-                z, log_j = model.fastflow[idx](feat)
+                z, log_j = model.decoder[idx](feat)
                 logp = build_neg_logp(z, log_j)
                 logp.backward()
                 optimizer.step()
@@ -33,7 +34,7 @@ def one_epoch(model, optimizer, dataloader, device):
 
 @torch.no_grad()
 def evaluate(model, data_loader, device):
-    model.fastflow.eval()
+    model.decoder.eval()
 
     # detection
     test_labels = list()
@@ -47,10 +48,11 @@ def evaluate(model, data_loader, device):
         input = input.to(device)
         with torch.no_grad():
             features = model.encoder(input)
+        features = list(features.values())
         likelihoods: List[Tensor] = []
         for idx, feat in enumerate(features):
-            z, log_j = model.fastflow[idx](feat)
-            likelihoods.append(torch.sum(z ** 2, 1))
+            z, log_j = model.decoder[idx](feat)
+            likelihoods.append(z.sum(1))
 
         image_score, mask_score = compute_anomaly_scores(likelihoods, input.shape[-2:])
 

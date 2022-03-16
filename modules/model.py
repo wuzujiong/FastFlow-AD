@@ -24,7 +24,7 @@ def subnet_conv_1x1(channels_in: int, channels_out: int) -> nn.Sequential:
         nn.Conv2d(2*channels_in, channels_out, (1, 1))
     )
 
-def fastflow_head(dims: tuple) -> Ff.SequenceINN:
+def nf_head(dims: tuple) -> Ff.SequenceINN:
 
     inn = Ff.SequenceINN(*dims)
     for k in range(4):
@@ -40,7 +40,8 @@ class FastFlow(nn.Module):
         """
 
         super().__init__()
-        self.encoder = timm.create_model(backbone, pretrained=True, features_only = True, out_indices=(1, 2, 3))
+        backbone = models.wide_resnet50_2(True, True)
+        self.encoder = create_feature_extractor(backbone, {f'layer{k}': str(i) for i,k in enumerate([1, 2, 3])})
         self.encoder.eval()
         for param in self.encoder.parameters():
             param.requires_grad = False
@@ -49,14 +50,9 @@ class FastFlow(nn.Module):
             features = self.encoder(torch.randn(1, 3, 256, 256))
 
         # discussion: https://discuss.pytorch.org/t/when-should-i-use-nn-modulelist-and-when-should-i-use-nn-sequential/5463/4
-        self.fastflow = nn.ModuleList([
-            fastflow_head(dim)
-            for dim in ((256, 64, 64), (512, 32, 32), (1024, 16, 16)) # hardcoded at the moment
+        self.decoder = nn.ModuleList([
+            nf_head(features[layer].shape[1:]) for layer in features
         ])
 
-    def forward(self, x: List[Tensor]) -> List:
-        with torch.no_grad():
-            features = self.encoder(x)
-        # features = list(features.values())
-
-        return [head_flow(feat) for feat, head_flow in zip (features, self.fastflow)]
+    def forward(self, x: List[Tensor]):
+        raise NotImplementedError
