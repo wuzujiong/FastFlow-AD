@@ -13,10 +13,11 @@ def train_model(model, dataloader, test_dataloader, device = torch.device('cuda'
     print(model)
     optimizer = Adam(model.fastflow.parameters(), 1e-3, weight_decay=1e-5)
 
+
     epochs = 15
+    
     model.to(device)
     for e in range(epochs):
-        train_loss = .0
         train_loss = one_epoch(model, optimizer, dataloader, device)
         det, seg = evaluate(model, test_dataloader, device)
 

@@ -12,6 +12,7 @@ def one_epoch(model, optimizer, dataloader, device):
     model.fastflow.train()
 
     train_loss = list()
+
     for _ in range(4): # sub epochs
         for inputs in dataloader:
             inputs = inputs.to(device)
