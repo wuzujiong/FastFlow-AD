@@ -17,6 +17,7 @@ def compute_anomaly_scores(distribution: List[Tensor], size: tuple) -> Tuple[Any
     """
     Calculate the anomaly score and anomaly map.
 
+
     Chap3.3: Specifically, we sum the two-dimensional probabilities of each channel to get the final probability map and upsample
     it to the input image resolution using bilinear interpolation.
 
@@ -41,6 +42,7 @@ def compute_anomaly_scores(distribution: List[Tensor], size: tuple) -> Tuple[Any
     score_img = score_mask.max()
 
     return score_img, score_mask
+
 
 def build_logp(z: torch.Tensor, log_j: torch.Tensor) -> torch.Tensor:
     """ Calculate the log-likelihood """

@@ -13,7 +13,9 @@ def train_model(model, dataloader, test_dataloader, device = torch.device('cuda'
     print(model)
     optimizer = Adam(model.decoder.parameters(), 1e-3, weight_decay=1e-5)
 
+
     epochs = 15
+    
     model.to(device)
     for e in range(epochs):
         train_loss = one_epoch(model, optimizer, dataloader, device)

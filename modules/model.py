@@ -1,8 +1,8 @@
-from collections import OrderedDict
 from typing import List, Callable
-import timm
+
 import torch
 from torch import nn, Tensor
+
 from torchvision import models
 from torchvision.models.feature_extraction import create_feature_extractor
 
@@ -30,20 +30,14 @@ def nf_head(dims: tuple) -> Ff.SequenceINN:
     for k in range(4):
         inn.append(Fm.AllInOneBlock, reverse_permutation = True, subnet_constructor=subnet_conv_3x3)
         inn.append(Fm.AllInOneBlock, reverse_permutation = True, subnet_constructor=subnet_conv_1x1)
-
     return inn
 
-
 class FastFlow(nn.Module):
-    def __init__(self, backbone = 'wide_resnet50_2'):
+    def __init__(self):
         """
         For resnet we directly use the features of the last layer in the first three blocks
         and put these features into three corresponding FastFlow model
-
-        :param backbone: wide_resnet50_2 and resnet18 are supported
         """
-
-        assert backbone == 'wide_resnet50_2' or backbone == 'resnet18'
 
         super().__init__()
         backbone = models.wide_resnet50_2(True, True)
@@ -54,6 +48,7 @@ class FastFlow(nn.Module):
         # Dry run to initialize the flow heads
         with torch.no_grad():
             features = self.encoder(torch.randn(1, 3, 256, 256))
+
         # discussion: https://discuss.pytorch.org/t/when-should-i-use-nn-modulelist-and-when-should-i-use-nn-sequential/5463/4
         self.decoder = nn.ModuleList([
             nf_head(features[layer].shape[1:]) for layer in features
@@ -61,4 +56,3 @@ class FastFlow(nn.Module):
 
     def forward(self, x: List[Tensor]):
         raise NotImplementedError
-
